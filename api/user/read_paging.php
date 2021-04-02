@@ -2,11 +2,15 @@
 // required headers
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
-
-
+  
 // include database and object files
+include_once '../config/core.php';
+include_once '../shared/utilities.php';
 include_once '../config/database.php';
 include_once '../objects/user.php';
+  
+// utilities
+$utilities = new Utilities();
   
 // instantiate database and product object
 $database = new Database();
@@ -15,11 +19,8 @@ $db = $database->getConnection();
 // initialize object
 $user = new User($db);
   
-// read users will be here
-
-
-// query products
-$stmt = $user->read();
+// query users
+$stmt = $user->readPaging($from_record_num, $records_per_page);
 $num = $stmt->rowCount();
   
 // check if more than 0 record found
@@ -28,6 +29,7 @@ if($num>0){
     // users array
     $users_arr=array();
     $users_arr["records"]=array();
+    $users_arr["paging"]=array();
   
     // retrieve our table contents
     // fetch() is faster than fetchAll()
@@ -38,7 +40,7 @@ if($num>0){
         // just $name only
         extract($row);
   
-        $user_item=array(
+           $user_item=array(
             "id" => $id,
             "firstname" => $firstname,
             "lastname" => $lastname ,
@@ -50,23 +52,28 @@ if($num>0){
         array_push($users_arr["records"], $user_item);
     }
   
+  
+    // include paging
+    $total_rows=$user->count();
+    $page_url="{$home_url}user/read_paging.php?";
+    $paging=$utilities->getPaging($page, $total_rows, $records_per_page, $page_url);
+    $users_arr["paging"]=$paging;
+  
     // set response code - 200 OK
     http_response_code(200);
   
-    // show users data in json format
+    // make it json format
     echo json_encode($users_arr);
 }
-// no users found will be here
+  
 else{
   
     // set response code - 404 Not found
     http_response_code(404);
   
-    // tell the user no users found
+    // tell the user products does not exist
     echo json_encode(
         array("message" => "No users found.")
     );
 }
-
-
 ?>
